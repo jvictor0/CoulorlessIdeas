@@ -394,7 +394,8 @@
   (dictnode-random my-dict body))
 (define (rand-word . body)
   (let ((nr (apply rand-word-lit body)))
-    (vector (string-append (vector-ref nr 0) "("
+    (vector (string-append ;(vector-ref nr 0) 
+			   "("
 			   (apply string-append 
 				  (map (lambda (x) 
 					 (if (boolean? x)
@@ -573,13 +574,13 @@
       (rand-word POS-ADVERB ADVERB-NORMAL)))
 
 (define (%sub-clause-punc begin end) (phrase begin (%sub-clause) end))
-(define-rand-elem (%possible-sub-clause-func) `((,%sub-clause-punc 1) (,%nil-func2 16)))
+(define-rand-elem (%possible-sub-clause-func) `((,%sub-clause-punc 1) (,%nil-func2 12)))
 (define (%possible-sub-clause begin end) ((%possible-sub-clause-func) begin end))
 
 (define-rand-elem (%possible-adverb-func) `((,%adverb-punc 1) (,%nil-func2 3)))
 (define (%possible-adverb begin end) ((%possible-adverb-func) begin end))
 
-(define-rand-func (%sub-clause-start) '(((lambda () (rand-word-lit POS-CONJUNCTION CONJUNCTION-SUBORDINATING)) 1)))
+(define-rand-func (%sub-clause-start) '(((lambda () (%subordinating-conjunction)) 1)))
 (define (%sub-clause) (phrase (%sub-clause-start) (%indep-clause)))
 
 (define-rand-elem (rand-plural) '((#t 1) (#f 2)))
@@ -734,7 +735,7 @@
 (define-rand-elem (%end-punc-random) `((,%exclamation 1) (,%period 9)))                            
 (define-rand-func (%sentence-random) '((%sentence-single 5) (%sentence-compound 2)))
 (define (%sentence-single) (phrase (%possible-sub-clause %nil %comma) (%indep-clause) (%possible-sub-clause %comma %nil) %comma))
-(define (%sentence-compound-conjunction) (phrase (%sentence-single) (rand-word-lit POS-CONJUNCTION CONJUNCTION-COORDINATING) (%sentence-single)))
+(define (%sentence-compound-conjunction) (phrase (%sentence-single) (%coordinating-conjunction) (%sentence-single)))
 (define (%sentence-compound-adverb) (phrase (%sentence-single) %semicolon (rand-word POS-ADVERB ADVERB-CONJUNCTIVE) %comma (%sentence-single)))
 (define-rand-func (%sentence-compound) '((%sentence-compound-conjunction 5) (%sentence-compound-adverb 1)))
 
@@ -766,8 +767,51 @@
 (define-rand-elem (%article-sing-indef) `((,%a 3) (,%some 1)))
 
 
+;;conjunctions 
+
+(define-rand-elem (%coordinating-conjunction)
+  `((,(lit-phrase "and") 1)
+    (,(lit-phrase "or") 1)
+    (,(lit-phrase "but") 1)
+    (,(lit-phrase "yet") 1)
+    (,(lit-phrase "for" ) 1)
+    (,(lit-phrase "so") 1)))
+
+(define-rand-elem (%subordinating-conjunction)
+  `((,(lit-phrase "after") 1)
+    (,(lit-phrase "how") 1)
+    (,(lit-phrase "till") 1)
+    (,(lit-phrase "although") 1)
+    (,(lit-phrase "if" ) 1)
+    (,(lit-phrase "unless") 1)
+    (,(lit-phrase "as" ) 1)
+    (,(lit-phrase "inasmuch") 1)   
+    (,(lit-phrase "until") 1)
+    (,(lit-phrase "as if" ) 1)
+    (,(lit-phrase "in order that") 1) 
+    (,(lit-phrase "when") 1)
+    (,(lit-phrase "as long as") 1) 
+    (,(lit-phrase "lest" ) 1)
+    (,(lit-phrase "whenever") 1)
+    (,(lit-phrase "as much as" ) 1)
+    (,(lit-phrase "now that" ) 1)
+    (,(lit-phrase "where") 1)
+    (,(lit-phrase "as soon as") 1) 
+    (,(lit-phrase "provided" ) 1)
+    (,(lit-phrase "wherever") 1)
+    (,(lit-phrase "as though" ) 1)
+    (,(lit-phrase "since" ) 1)
+    (,(lit-phrase "while") 1)
+    (,(lit-phrase "because" ) 1)
+    (,(lit-phrase "so that") 1)
+    (,(lit-phrase "before" ) 1)
+    (,(lit-phrase "than") 1)
+    (,(lit-phrase "even if") 1)
+    (,(lit-phrase "even though"    ) 1)
+    (,(lit-phrase "though") 1)))
+
 ;; adjectives
-(define-rand-func (%possible-adj) '((%nil-func0 50) (%adj-1 4) (%adj-2 2) (%adj-3 1)))
+(define-rand-func (%possible-adj) '((%nil-func0 100) (%adj-1 8) (%adj-2 3) (%adj-3 1)))
 (define-rand-func (%adj) '((%adj-1 4) (%adj-2 2) (%adj-3 1)))
 (define (%adj-1) (rand-word POS-ADJECTIVE ADJECTIVE-GOOD))
 (define (%adj-2) (phrase (rand-word POS-ADJECTIVE ADJECTIVE-GOOD) %comma (rand-word POS-ADJECTIVE ADJECTIVE-GOOD)))
@@ -780,9 +824,9 @@
 
 ;; nouns
 (define-rand-func (%noun-pl simple) 
-  `(((lambda () (%noun-phrase NOUN-PLURAL ,simple)) 10) 
-    ((lambda () (phrase (%noun-phrase-no-clause NOUN-SINGULAR) %and (%noun-phrase NOUN-SINGULAR ,simple))) 2)
-    ((lambda () (phrase (%noun-phrase-no-clause NOUN-SINGULAR) %comma (%noun-phrase-no-clause NOUN-SINGULAR) %comma %and (%noun-phrase NOUN-SINGULAR ,simple))) 2)))
+  `(((lambda () (%noun-phrase NOUN-PLURAL ,simple)) 20) 
+    ((lambda () (phrase (%noun-phrase-no-clause NOUN-SINGULAR) %and (%noun-phrase NOUN-SINGULAR ,simple))) 5)
+    ((lambda () (phrase (%noun-phrase-no-clause NOUN-SINGULAR) %comma (%noun-phrase-no-clause NOUN-SINGULAR) %comma %and (%noun-phrase NOUN-SINGULAR ,simple))) 1)))
 
 (define (%noun-sing simple) (%noun-phrase NOUN-SINGULAR simple))
 (define (%noun-phrase-no-clause plurality) 
