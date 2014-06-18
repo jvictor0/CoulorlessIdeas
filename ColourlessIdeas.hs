@@ -44,7 +44,7 @@ splitComma [] = [[]]
 
 readDE :: [String] -> String -> [DictEntry]
 readDE sw str 
-  | str`elem`sw = [] 
+  | (map toLower str)`elem`sw = [] 
   | otherwise = map (\pos -> (crop $ take 23 str, 
                               read [head pos], 
                               pos!!1, pos!!2))
@@ -55,10 +55,15 @@ readDict :: IO [DictEntry]
 readDict = do
   sw <- fmap lines $ readFile "stopwords"
   f <- fmap lines $ readFile "dict.txt"
-  return $ concatMap (readDE sw) f
+  return 
+    $ concatMap (\poses -> filter (\(_,_,_,r) -> r == (maximum $ map (\(_,_,_,r) -> r) poses)) poses)
+    $ groupBy (\(a,_,_,_) (b,_,_,_) -> a == b)
+    $ concatMap (readDE sw) f
   
 char x = head $ show x
   
+realAdverb x = "yl" == (take 2 $ reverse x)
+         
 entries (word,M,a,b) = (entries (word,K,a,b)) ++ (entries (word,L,a,b))
 entries (word,J,a,b) = (entries (word,H,a,b)) ++ (entries (word,I,a,b))
 entries (word,nn,'0',_) = [(word,[char nn,t]),(word++"s",[char nn,f,a]),(word++"ing",[char nn,f,b]),(word++"ed",[char nn,f,c])]
@@ -85,7 +90,8 @@ entries (word,nn,'i',_) = [(word,[char nn,t])]
 entries (word,nn,'j',_) = [(word,[char nn,f])]
 entries (word,nn,'k',_) = [(word,[char nn,t])]
 entries (word,N,lmno,_) = [(word,[char N,lmno])]
-entries (word,P,tp,_) = [(word,[char P,tp])]
+entries (word,P,tp,_) 
+  | realAdverb word = [(word,[char P,tp])]
 entries _ = []
 
 
@@ -98,8 +104,8 @@ ideas = fmap (fmap nub . foldl' insertIdeas Map.empty) readDict
 ideasString = do
   is <- ideas
   sw <- fmap lines $ readFile "stopwords"
-  let stris = map (\(w,l) -> (show w) ++ " : " ++ (show $ map (\(x,y) -> [x,"(" ++ y ++ ")"]) 
-                                                   $ filter ((`notElem`sw).fst) l)) 
+  let stris = map (\(w,l) -> (show $ map toLower w) ++ " : " ++ (show $ map (\(x,y) -> [x,"(" ++ y ++ ")"]) 
+                                                   $ filter ((`notElem`sw).(map toLower).fst) l)) 
               $ Map.toList is
   return $ "{" ++ (concat $ intersperse "," stris )++ "}" 
   
