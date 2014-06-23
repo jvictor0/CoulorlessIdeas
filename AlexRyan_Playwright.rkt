@@ -404,7 +404,7 @@
   (dictnode-random my-dict body))
 (define (rand-word . body)
   (let ((nr (apply rand-word-lit body)))
-    (vector (string-append (vector-ref nr 0) 
+    (vector (string-append ;(vector-ref nr 0) 
 			   "("
 			   (apply string-append 
 				  (map (lambda (x) 
@@ -500,6 +500,8 @@
 (define %some (word-make "some" "" "Pu$,R-*" "1"))
 (define %those (word-make "those" "" "Pu$,R-*" "1"))
 
+
+
 (define %would (word-make "would" "wUd" "Gc*,Hc%" "1"))
 (define %wouldnt (word-make "wouldn't" "wUd" "Gc*,Hc%" "1"))
 (define %will (word-make "will" "wIl" "G5*,J0%,M6%" "1"))
@@ -579,8 +581,12 @@
 
 (define (rand-sentence) 
   (phrase-parse (%sentence)))
-(define (rand-advice) 
-  (phrase-parse (%advice)))
+(define (rand-sentence-bother) 
+  (phrase-parse (%sentence-bother)))
+
+(define (rand-conversation) 
+  (phrase-parse (%advice))
+  (phrase-parse (%question-sentence)))
 
 ;;; ====== GRAMMAR RULES ======
 
@@ -627,6 +633,100 @@
     ((lambda () (phrase (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ''you) (%possible-adverb %nil %nil))) 1)
     ((lambda () (phrase (%possible-adverb %nil %nil) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ''you))) 1)
     ((lambda () (phrase %be (%being-target #f ''you))) 3)
+    ))
+
+
+
+(define (%present-question)
+  (let ((sub-and-tag (%subject-and-tag (rand-plural))))
+    (phrase (%present-question-word (cdr sub-and-tag)) (car sub-and-tag) (%present-question-suffix (cdr sub-and-tag)) %question)))
+
+(define (%transitive-question)
+  (let ((sub-and-tag (%subject-and-tag (rand-plural))))
+    (phrase (%transitive-question-word) (rand-word POS-COUNTABLE-NOUN NOUN-SINGULAR)
+	    (%simple-question-word (cdr sub-and-tag)) (car sub-and-tag)
+	    (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE)
+	    (%likely-prepositional-phrase)
+	    (%transitive-question-suffix) %question)))
+
+(define (%being-question)
+  (let* ((plurality (rand-plural))
+         (subj-and-tag (%subject-and-tag plurality)))
+    (phrase (%to-be (%fix-am-not (cdr subj-and-tag))) (car subj-and-tag)  (%being-target plurality (cdr subj-and-tag))
+	    %question)))
+
+(define (%fix-am-not p)
+  (if (equal? p (lit-phrase "am not"))
+      (lit-phrase "aren't")
+      p))
+
+(define-rand-func (%present-question-word pronoun)
+  `(((lambda () (lit-phrase "did")) 1)
+    ((lambda () (lit-phrase "when did")) 1)
+    ((lambda () (lit-phrase "where did")) 1)
+    ((lambda () (lit-phrase "why did")) 1)
+    ((lambda () (lit-phrase "how did")) 1)
+    ((lambda () (lit-phrase "didn't")) 1)
+    ((lambda () (lit-phrase "why didn't")) 1)
+    ((lambda () (lit-phrase "why can't")) 1)
+    ((lambda () (lit-phrase "can't")) 1)
+    ((lambda () (lit-phrase "can")) 1)  
+    ((lambda () (lit-phrase "how can")) 1)  
+    ((lambda () (lit-phrase "where can")) 1)  
+    ((lambda () (lit-phrase "when can")) 1)  
+    ((lambda () (%do-verb ',pronoun)) 2)
+    ((lambda () (phrase (lit-phrase "why") (%do-verb ',pronoun))) 1)
+    ((lambda () (phrase (lit-phrase "where") (%do-verb+ ',pronoun))) 1)
+    ((lambda () (phrase (lit-phrase "how") (%do-verb+ ',pronoun))) 1)
+    ((lambda () (phrase (lit-phrase "when") (%do-verb+ ',pronoun))) 1)
+    ))
+(define-rand-func (%simple-question-word pronoun)
+  `(((lambda () (lit-phrase "did")) 1)
+    ((lambda () (lit-phrase "didn't")) 1)
+    ((lambda () (lit-phrase "can't")) 1)
+    ((lambda () (lit-phrase "can")) 1)  
+    ((lambda () (%do-verb ',pronoun)) 2)
+    ))
+(define-rand-func (%transitive-question-word)
+  `(((lambda () (lit-phrase "which")) 1)
+    ((lambda () (lit-phrase "whose")) 1)
+    ((lambda () (lit-phrase "what")) 1)
+    ))
+
+(define-rand-func (%do-verb pronoun)
+  `(((lambda () (%do-verb+ ',pronoun)) 4)
+    ((lambda () (%do-verb- ',pronoun)) 1)))
+(define (%do-verb+ pronoun)
+  (lit-phrase 
+   (cond 
+    ((equal? pronoun ''I) "do")
+    ((equal? pronoun ''you) "do")
+    ((equal? pronoun ''he) "does")
+    ((equal? pronoun ''she) "does")
+    ((equal? pronoun ''it) "does")
+    ((equal? pronoun ''they) "do")
+    ((equal? pronoun ''we) "do")
+    ((equal? pronoun ''sing) "does")
+    ((equal? pronoun ''plural) "do")
+    (else (error pronoun)))))
+(define (%do-verb- pronoun)
+  (lit-phrase (cond 
+	       ((equal? pronoun ''I) "don't")
+	       ((equal? pronoun ''you) "don't")
+	       ((equal? pronoun ''he) "doesn't")
+	       ((equal? pronoun ''she) "doesn't")
+	       ((equal? pronoun ''it) "doesn't")
+	       ((equal? pronoun ''they) "don't")
+	       ((equal? pronoun ''we) "don't")
+	       ((equal? pronoun ''sing) "doesn't")
+	       ((equal? pronoun ''plural) "don't")
+	       (else (error pronoun)))))
+
+(define-rand-func (%present-question-suffix pronoun) 
+  `(
+    ((lambda () (phrase (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE) (%possible-adverb %nil %nil))) 1)
+    ((lambda () (phrase (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ',pronoun) (%possible-adverb %nil %nil))) 1)
+    ((lambda () (phrase (%possible-adverb %nil %nil) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ',pronoun))) 1)
     ))
 
 
@@ -873,6 +973,15 @@
 (define-rand-elem (%second-conditional-prefix)
   `((,(lit-phrase "if") 5)
     (,(lit-phrase "if only") 1)))
+
+(define-rand-elem (%transitive-question-suffix)
+  `((,%nil 8)
+    (,(lit-phrase "and why") 2)
+    (,(lit-phrase "and what for") 2)
+    (,(lit-phrase "and for what") 2)
+    (,(phrase %comma (lit-phrase "seriously")) 1)
+    (,(phrase %comma (lit-phrase "really")) 1)))
+
   
 (define-rand-elem (%subjunctive-prefix)
   `((,(lit-phrase "but what if") 2)
@@ -923,23 +1032,40 @@
 
 ;;; --- SENTENCES ---
 (define-rand-func (%sentence) 
-  '(((lambda () (phrase (%possible-prefix) (%sentence-random) (%end-punc-random))) 3)
+  `(((lambda () (phrase (%possible-prefix) (%sentence-random) (%end-punc-random))) 3)
     ((lambda () (phrase (%sentence-random) (%possible-suffix) (%end-punc-random))) 2)
     ((lambda () (phrase (%second-conditional-prefix) (%subjunctive-clause) %comma (%conditional-clause) (%end-punc-random))) 3)
     ((lambda () (phrase (%conditional-clause) (%second-conditional-prefix) (%subjunctive-clause) (%end-punc-random))) 3)
-    ((lambda () (phrase (%subjunctive-prefix) (%subjunctive-clause) %question)) 2)))  
+    ((lambda () (phrase (%subjunctive-prefix) (%subjunctive-clause) %question)) 2)
+    (,%advice 2)
+    (,%question-sentence 6))) 
+ 
+(define-rand-func (%sentence-bother) 
+  `(((lambda () (phrase (%possible-prefix) (%sentence-random) (%end-punc-random))) 3)
+    ((lambda () (phrase (%sentence-random) (%possible-suffix) (%end-punc-random))) 2)
+    ((lambda () (phrase (%second-conditional-prefix) (%subjunctive-clause) %comma (%conditional-clause) (%end-punc-random))) 3)
+    ((lambda () (phrase (%conditional-clause) (%second-conditional-prefix) (%subjunctive-clause) (%end-punc-random))) 3)
+    ((lambda () (phrase (%subjunctive-prefix) (%subjunctive-clause) %question)) 2)
+    (,%advice 15)
+    (,%question-sentence 20)))  
+
 (define-rand-elem (%end-punc-random) `((,%exclamation 1) (,%period 9)))                            
 (define-rand-func (%sentence-random) '((%sentence-single 5) (%sentence-compound 2)))
 (define (%sentence-single) (phrase  (%possible-sub-clause %comma %comma) (%indep-clause) (%possible-sub-clause %comma %nil) %comma))
 (define (%sentence-compound-conjunction) (phrase (%sentence-single) (%coordinating-conjunction) (%sentence-single)))
 (define (%sentence-compound-adverb) (phrase (%sentence-single) %semicolon (rand-word POS-ADVERB ADVERB-CONJUNCTIVE) %comma (%sentence-single)))
 (define-rand-func (%sentence-compound) '((%sentence-compound-conjunction 5) (%sentence-compound-adverb 1)))
-(define (%advice) (phrase (%advice-prefix) (%command) (%possible-sub-clause %nil %nil)))
+(define (%advice) (phrase (%advice-prefix) (%command) (%possible-sub-clause %nil %nil) (%end-punc-random)))
+(define-rand-elem (%question-sentence)
+  `((,(%present-question) 2)
+    (,(%transitive-question) 1)
+    (,(%being-question) 3)))
 
 
 ;; prepositional phrases
-(define (%prepositional-phrase) (phrase (%preposition-sing) (%noun-pl #f)))
+(define (%prepositional-phrase) (phrase (%preposition-sing) (%noun-phrase-no-clause (rand-plural))))
 (define-rand-func (%possible-prepositional-phrase) '((%prepositional-phrase 1)(%nil-func0 6)))
+(define-rand-func (%likely-prepositional-phrase) '((%prepositional-phrase 1)(%nil-func0 1)))
 
 (define-rand-elem (%preposition-sing)
   `((,(lit-phrase "across from") 1)
@@ -1019,8 +1145,7 @@
     ((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) (%superlative-modify))) 1)
     ((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) 
 			(rand-word POS-COUNTABLE-NOUN ,plural) (%superlative-modify))) 1)
-    ((lambda () (phrase (rand-word POS-INTRANSITIVE-VERB  VERB-CONJUGATED CONJ-PRESENT-PART)
-			(rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE))) 2)))
+    ((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE))) 2)))
 
 (define-rand-elem (%superlative-modify)
   `((,(lit-phrase "ever") 1)
@@ -1046,10 +1171,14 @@
   (if (not plurality)
       (%noun-phrase-no-clause-pl)
       (%noun-phrase-no-clause-sing)))
-(define (%noun-phrase-no-clause-pl) (phrase (%article #f) (%possible-adj) (rand-word POS-COUNTABLE-NOUN #f)))
+(define-rand-func (%noun-phrase-no-clause-pl)
+  `(((lambda () (phrase (%article #f) (%possible-adj) (rand-word POS-COUNTABLE-NOUN #f))) 8)
+    ((lambda () (phrase %the (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) (rand-word POS-COUNTABLE-NOUN #f))) 1)
+    ))
 (define-rand-func (%noun-phrase-no-clause-sing)
-  `(((lambda () (phrase (%article #t) (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 20)
-    ((lambda () (rand-word POS-PROPER-NOUN PROPER-NOUN-FORENAME)) 1)))
+  `(((lambda () (phrase (%article #t) (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 8)
+    ((lambda () (phrase %the (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) (rand-word POS-COUNTABLE-NOUN #t))) 1)
+    ((lambda () (rand-word POS-PROPER-NOUN PROPER-NOUN-FORENAME)) 2)))
 (define (%noun-phrase plurality simple) 
   (if simple
       (%noun-phrase-no-clause plurality)
@@ -1190,16 +1319,18 @@
 (define (%verb-future-perfect-continuous trans) (phrase (%random-inflect) %have %been (rand-word trans VERB-CONJUGATED CONJ-PRESENT-PART)))
          
 
-(define (doit n out)
+(define (doit n fn out)
   (if (= n 0)
       '()
       (begin 
-	(write-string (rand-sentence) out)
+	(write-string (fn) out)
 	(write-string "\n" out)
-	(doit (- n 1) out))))
+	(doit (- n 1) fn out))))
 
 (define (main)
   (begin
-    (delete-file "Prases.txt")
-    (doit 1000 (open-output-file "Prases.txt"))))
+    (delete-file "Phrases.txt")
+    (delete-file "PhrasesBother.txt")
+    (doit 1000 rand-sentence (open-output-file "Phrases.txt"))
+    (doit 1000 rand-sentence-bother (open-output-file "PhrasesBother.txt"))))
 
