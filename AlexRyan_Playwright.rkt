@@ -214,6 +214,12 @@
 
 (define (is-infinitive? verb)
   (char-numeric? (word-conj verb)))
+(define (is-adjective-good? verb)
+  (or (eq? (word-conj verb) #\A)
+      (eq? (word-conj verb) #\B)
+      (eq? (word-conj verb) #\C)
+      (eq? (word-conj verb) #\D)
+      (eq? (word-conj verb) #\E)))
 
 (define VERB-INFINITIVE #t)
 (define VERB-CONJUGATED #f)
@@ -283,10 +289,14 @@
 (define ADJECTIVE-GOOD #t)
 
 (define ADJECTIVE-HIERARCHY
-  `(,is-attribute?
+  `(,is-adjective-good?
     (,ADJECTIVE-GOOD 0)
-    (,ADJECTIVE-OTHER 0)))
-
+    (,ADJECTIVE-OTHER ,word-conj
+		      (,ADJECTIVE-COMPARE 0)
+		      (,ADJECTIVE-PREDICATE 0)
+		      (,ADJECTIVE-ATTRIBUTE 0)
+		      (,ADJECTIVE-SUPERLATIVE 0)
+		      (,ADJECTIVE-HYPHEN 0))))
 ;; -- ADVERB DEFINITIONS --
 
 (define ADVERB-NORMAL #\u)
@@ -394,7 +404,7 @@
   (dictnode-random my-dict body))
 (define (rand-word . body)
   (let ((nr (apply rand-word-lit body)))
-    (vector (string-append ;;(vector-ref nr 0) 
+    (vector (string-append (vector-ref nr 0) 
 			   "("
 			   (apply string-append 
 				  (map (lambda (x) 
@@ -486,6 +496,7 @@
 (define %a (word-make "a" "@" "S-*" "1"))
 (define %an (word-make "an" "@n" "S-*" "1"))
 (define %the (word-make "the" "D@" "Pu$,R-*" "1"))
+(define %than (word-make "than" "D@" "Pu$,R-*" "1"))
 (define %some (word-make "some" "" "Pu$,R-*" "1"))
 (define %those (word-make "those" "" "Pu$,R-*" "1"))
 
@@ -500,6 +511,8 @@
 
 (define %am (word-make "am" "&m" "Ge*,Ie%" "1"))
 (define %is (word-make "is" "Iz" "Ga*,Ia%" "1"))
+(define %isnt (word-make "isn't" "Iz" "Ga*,Ia%" "1"))
+(define %arent (word-make "aren't" "Iz" "Ga*,Ia%" "1"))
 (define %like (word-make "like" "Iz" "Ga*,Ia%" "1"))
 (define %are (word-make "are" "AR" "Ge*,Ie*,K6$" "1"))
 (define %was (word-make "was" "w0z" "Gc*,Ic%" "1"))
@@ -566,6 +579,8 @@
 
 (define (rand-sentence) 
   (phrase-parse (%sentence)))
+(define (rand-advice) 
+  (phrase-parse (%advice)))
 
 ;;; ====== GRAMMAR RULES ======
 
@@ -605,6 +620,15 @@
     
     (,%being-clause 7)
     ))
+
+(define-rand-func (%command) 
+  `(
+    ((lambda () (phrase (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE) (%possible-adverb %nil %nil))) 1)
+    ((lambda () (phrase (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ''you) (%possible-adverb %nil %nil))) 1)
+    ((lambda () (phrase (%possible-adverb %nil %nil) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (%object (rand-plural) ''you))) 1)
+    ((lambda () (phrase %be (%being-target #f ''you))) 3)
+    ))
+
 
 (define-rand-elem (%subjunctive-clause-pl-random) 
   `(
@@ -759,7 +783,10 @@
 
 
 
-(define (%to-be tag)
+(define-rand-func (%to-be tag) 
+  `(((lambda () (%to-be+ ',tag)) 3)
+    ((lambda () (%to-be- ',tag)) 1)))
+(define (%to-be+ tag)
   (cond ((equal? tag ''I) %am)
 	((equal? tag ''sing) %is)
 	((equal? tag ''he) %is)
@@ -769,6 +796,16 @@
 	((equal? tag ''you) %are)
 	((equal? tag ''they) %are)
 	((equal? tag ''we) %are)))
+(define (%to-be- tag)
+  (cond ((equal? tag ''I) (lit-phrase "am not"))
+	((equal? tag ''sing) %isnt)
+	((equal? tag ''he) %isnt)
+	((equal? tag ''she) %isnt)
+	((equal? tag ''it) %isnt)
+	((equal? tag ''plural) %arent)
+	((equal? tag ''you) %arent)
+	((equal? tag ''they) %arent)
+	((equal? tag ''we) %arent)))
 
 
 (define-rand-func (%being-target plurality pronoun)
@@ -776,7 +813,7 @@
    ((lambda () (cond 
 		((equal? ,pronoun 'I) (lit-phrase "myself"))
 		((equal? ,pronoun 'we) (lit-phrase "ourselves"))
-		(else (if ,plurality (lit-phrase "me") (lit-phrase "us")))))
+		(else (if ,plurality (lit-phrase "us") (lit-phrase "me")))))
     1)
    ((lambda () (cond 
 		((equal? ,pronoun 'you) (lit-phrase "yourself"))
@@ -787,7 +824,11 @@
    ((lambda () (%prepositional-phrase)) 1)
    ((lambda () (%adj)) 1)
    ((lambda () (phrase %like (%article (not ,plurality)) (rand-word POS-COUNTABLE-NOUN (not ,plurality)) (%adj-clause))) 1)
-   ((lambda () (phrase (%article (not ,plurality)) (rand-word POS-COUNTABLE-NOUN (not ,plurality)) (%adj-clause))) 1)))
+   ((lambda () (phrase (%article (not ,plurality)) (rand-word POS-COUNTABLE-NOUN (not ,plurality)) (%adj-clause))) 1)
+   ((lambda () (phrase (%adj-comparative) %than (%object ,plurality ',pronoun))) 1)
+   ((lambda () (phrase (%adj-comparative-1) %than (%object ,plurality ',pronoun) %and 
+		       (%adj-comparative-1) %than (%object ,plurality ',pronoun))) 1)
+   ((lambda () (phrase %the (%adj-superlative (not ,plurality)))) 1)))
 
 (define (fix-helper adverb verb)
   (if (not (list? verb))
@@ -811,6 +852,7 @@
     (,(lit-phrase "I think") 2)
 ;    (,(phrase (lit-phrase "as a taxpayer") %comma) 2)
     (,(lit-phrase "I'm bothered that") 2)
+    (,(lit-phrase "I believe that") 2)
     (,(lit-phrase "I don't think") 2) 
     (,(phrase (lit-phrase "imo") %comma) 1)
     (,(phrase (lit-phrase "hey") %comma) 1)
@@ -865,6 +907,19 @@
     (,(lit-phrase "what if") 1)
     ))
   
+(define-rand-elem (%advice-prefix)
+  `((,(lit-phrase "I think you should") 1)
+    (,(lit-phrase "you should") 1)
+    (,(lit-phrase "you ought to") 1)
+    (,(lit-phrase "you ought not") 1)
+    (,(lit-phrase "you shoudn't") 1)
+    (,(lit-phrase "please") 2)
+    (,(lit-phrase "please don't") 1)
+    (,(lit-phrase "you need to") 1)
+    (,(lit-phrase "you don't have to") 1)
+    (,(lit-phrase "I have to ask you to") 1)
+    ))
+  
 
 ;;; --- SENTENCES ---
 (define-rand-func (%sentence) 
@@ -879,10 +934,12 @@
 (define (%sentence-compound-conjunction) (phrase (%sentence-single) (%coordinating-conjunction) (%sentence-single)))
 (define (%sentence-compound-adverb) (phrase (%sentence-single) %semicolon (rand-word POS-ADVERB ADVERB-CONJUNCTIVE) %comma (%sentence-single)))
 (define-rand-func (%sentence-compound) '((%sentence-compound-conjunction 5) (%sentence-compound-adverb 1)))
+(define (%advice) (phrase (%advice-prefix) (%command) (%possible-sub-clause %nil %nil)))
+
 
 ;; prepositional phrases
 (define (%prepositional-phrase) (phrase (%preposition-sing) (%noun-pl #f)))
-(define-rand-func (%possible-prepositional-phrase) '((%prepositional-phrase 1) (%nil-func0 6)))
+(define-rand-func (%possible-prepositional-phrase) '((%prepositional-phrase 1)(%nil-func0 6)))
 
 (define-rand-elem (%preposition-sing)
   `((,(lit-phrase "across from") 1)
@@ -921,7 +978,6 @@
 (define-rand-elem (%subordinating-conjunction)
   `((,(lit-phrase "after") 1)
     (,(lit-phrase "till") 1)
-    (,(lit-phrase "although") 1)
     (,(lit-phrase "if" ) 1)
     (,(lit-phrase "unless") 1)
     (,(lit-phrase "as" ) 1)
@@ -946,8 +1002,7 @@
     (,(lit-phrase "so that") 1)
     (,(lit-phrase "before" ) 1)
     (,(lit-phrase "even if") 1)
-    (,(lit-phrase "even though"    ) 1)
-    (,(lit-phrase "though") 1)))
+    (,(lit-phrase "even though") 1)))
 
 ;; adjectives
 (define-rand-func (%possible-adj) '((%nil-func0 100) (%adj-1 8) (%adj-2 1) (%adj-2-and 1) (%adj-3 1)))
@@ -956,11 +1011,29 @@
 (define (%adj-2) (phrase (rand-word POS-ADJECTIVE ADJECTIVE-GOOD) %comma (rand-word POS-ADJECTIVE ADJECTIVE-GOOD)))
 (define (%adj-2-and) (phrase (rand-word POS-ADJECTIVE ADJECTIVE-GOOD) %and (rand-word POS-ADJECTIVE ADJECTIVE-GOOD)))
 (define (%adj-3) (phrase (rand-word POS-ADJECTIVE ADJECTIVE-GOOD) %comma (rand-word POS-ADJECTIVE ADJECTIVE-GOOD) %comma %and (rand-word POS-ADJECTIVE ADJECTIVE-GOOD)))
+(define (%adj-comparative-1) (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-COMPARE))
+(define (%adj-comparative-2) (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-COMPARE) %and (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-COMPARE)))
+(define-rand-func (%adj-comparative) '((%adj-comparative-1 6) (%adj-comparative-2 1)))
+(define-rand-func (%adj-superlative plural) 
+  `(((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE))) 8)
+    ((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) (%superlative-modify))) 1)
+    ((lambda () (phrase (rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE) 
+			(rand-word POS-COUNTABLE-NOUN ,plural) (%superlative-modify))) 1)
+    ((lambda () (phrase (rand-word POS-INTRANSITIVE-VERB  VERB-CONJUGATED CONJ-PRESENT-PART)
+			(rand-word POS-ADJECTIVE ADJECTIVE-OTHER ADJECTIVE-SUPERLATIVE))) 2)))
+
+(define-rand-elem (%superlative-modify)
+  `((,(lit-phrase "ever") 1)
+    (,(lit-phrase "anywhere") 1)
+    (,(lit-phrase "yet") 1)
+    (,(lit-phrase "I've seen") 1)
+    (,(lit-phrase "I've know") 1)
+    (,(lit-phrase "I've heard of") 1)))
 
 (define-rand-func (%possible-adj-clause) '((%nil-func0 2) (%adj-clause 3)))
 (define-rand-func (%adj-clause) '((%that-adj-clause 3) (%which-adj-clause 1)))
 (define (%that-adj-clause) (phrase %that (%indep-clause-pl-trans-no-obj (rand-plural))))
-(define (%which-adj-clause) (phrase %comma %which (%indep-clause-pl-trans-no-obj (rand-plural)) %comma))
+(define (%which-adj-clause) (phrase %which (%indep-clause-pl-trans-no-obj (rand-plural))))
 
 ;; nouns
 (define-rand-func (%noun-pl simple) 
@@ -998,8 +1071,7 @@
   `(((lambda () (%noun #t)) 20)
     ((lambda () (if (equal? ,is-we 'we) (lit-phrase "ourselves") (lit-phrase "us"))) 3)
     ((lambda () (if (equal? ,is-we 'them) (lit-phrase "themselves") (lit-phrase "them"))) 2)
-    ((lambda () (lit-phrase "em")) 1)
-    ((lambda () (lit-phrase "you guys")) 2)))
+    ((lambda () (lit-phrase "em")) 2)))
 (define (%object plurality . is-ego)
   (if (null? is-ego)
       (%object plurality #f)
@@ -1019,7 +1091,7 @@
     ((lambda () (cons (lit-phrase "he") ''he)) 1)
     ((lambda () (cons (lit-phrase "she") ''she)) 1)
     ((lambda () (cons (lit-phrase "it") ''it)) 2)
-    ((lambda () (cons (lit-phrase "you") ''you)) 2)))
+    ((lambda () (cons (lit-phrase "you") ''you)) 15)))
 (define-rand-func (%subj-and-tag-pl)
   `(((lambda () (cons (%noun #t) ''plural)) 20)
     ((lambda () (cons (lit-phrase "we") ''we)) 5)
@@ -1130,3 +1202,4 @@
   (begin
     (delete-file "Prases.txt")
     (doit 1000 (open-output-file "Prases.txt"))))
+

@@ -97,15 +97,16 @@ entries _ = []
 
 insertIdeas :: Map.Map String [(String,String)] -> DictEntry -> Map.Map String [(String,String)]
 insertIdeas mp de = let es = entries de
-                    in foldl' (\mp (w,_) -> Map.insertWith (++) w es mp) mp es
+                    in foldl' (\mp (w,_) -> Map.insertWith (++) (map toLower w) es mp) mp es
 
-ideas = fmap (fmap nub . foldl' insertIdeas Map.empty) readDict
-
+ideas = do
+  is <- fmap (fmap nub . foldl' insertIdeas Map.empty) readDict
+  sw <- fmap lines $ readFile "stopwords"
+  return $ Map.filterWithKey (\k _ -> k`notElem`sw) $ Map.filter (not . null) $ fmap (filter ((`notElem`sw).(map toLower).fst)) is
+  
 ideasString = do
   is <- ideas
-  sw <- fmap lines $ readFile "stopwords"
-  let stris = map (\(w,l) -> (show $ map toLower w) ++ " : " ++ (show $ map (\(x,y) -> [x,"(" ++ y ++ ")"]) 
-                                                   $ filter ((`notElem`sw).(map toLower).fst) l)) 
+  let stris = map (\(w,l) -> (show w) ++ " : " ++ (show $ map (\(x,y) -> [x,"(" ++ y ++ ")"]) l)) 
               $ Map.toList is
   return $ "{" ++ (concat $ intersperse "," stris )++ "}" 
   
