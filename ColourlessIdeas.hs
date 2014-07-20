@@ -102,7 +102,9 @@ insertIdeas mp de = let es = entries de
 ideas = do
   is <- fmap (fmap nub . foldl' insertIdeas Map.empty) readDict
   sw <- fmap lines $ readFile "stopwords"
-  return $ Map.filterWithKey (\k _ -> k`notElem`sw) $ Map.filter (not . null) $ fmap (filter ((`notElem`sw).(map toLower).fst)) is
+  return $ Map.filterWithKey (\k _ -> k`notElem`sw) $ Map.filter (not . null) 
+    $ fmap (\l -> let len = length l in filter (\(_,x) -> (len == 1) || x /= "Nl") l)
+    $ fmap (filter ((`notElem`sw).(map toLower).fst)) is
   
 ideasString = do
   is <- ideas

@@ -10,10 +10,11 @@ import Data.Maybe
 
 readBaskets file = do
   f <- readFile file
-  g <- readFile "quotes.txt"
+  g <- readFile "quotes2.txt"
   i <- ideas
   putStrLn $ i`deepseq`"Gen'd Ideas"
-  return $ map (lineToBasket i) $ (lines g) ++ (map unwords $ groupBy (\a b -> null b || head b /= '\"') $ lines f)
+  return $ filter (not . null) $
+    map (lineToBasket i) $ (lines g) ++ (map unwords $ groupBy (\a b -> null b || head b /= '\"') $ lines f)
 
 realChar '-' = True
 realChar '\'' = True
