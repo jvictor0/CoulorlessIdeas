@@ -92,16 +92,16 @@ function chooseResponse(tweets, maxtrials, file)
     
     var corpus = {};
     
-    //print("Original Tweet = " + tweets[0]);
+//    console.log("Original Tweet = " + tweets[0]);
     AddWordsToCorpus(tweets[0].replace(/[\.,-\/#!$%\^&\*;\?:{}=\-_`~()]/g," ").split(' '),corpus,dict);
     AddWordsToCorpus(tweets[0].replace(/[\.,-\/#!$%\^&\*;\?:{}=\-_`~()]/g," ").split(' '),corpus,dict);
 
      
     var tweet_ix = 1;
  
-    
+      
     var sentence = getRandomSentence(file).split(' ');
- 
+      
     var response = "";
     var used_words = [];
     var last_word_a = false;
@@ -215,14 +215,13 @@ function chooseResponse(tweets, maxtrials, file)
 
 function LoadNegativeWords()
 {
-    return fs.readFileSync("negative.txt",'utf-8').replace("\n"," "); 
+    return fs.readFileSync("negative.txt",'utf-8').replace(/\n/g," "); 
 }
 
 function getRandomSentence(sentencefile)
 {
     var result = fs.readFileSync(sentencefile,'utf-8').split("\n"); 
     var theresult = result[Math.floor(Math.random() * result.length)]; 
-    //printtheresult);
     return theresult;
 }
 

@@ -1438,10 +1438,10 @@
 (define-rand-func (%insult-body)
   `(
     (,(lambda () (phrase (%you-are) (%being-target #f ''you))) 4)
-;    (,(lambda () (phrase (lit-phrase "you")  (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE) %comma %and (%insult-body)))  1)
+    (,(lambda () (phrase (lit-phrase "you")  (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE) %comma %and (%insult-body)))  1)
     (,(lambda () (phrase (%you-are) (lit-phrase "such a") (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 3)
-    (,(lambda () (phrase (%you-are) %a  (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART)  (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 3)
-    (,(lambda () (phrase %I (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "you"))) 3)
+    (,(lambda () (phrase (%you-are) %a  (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART)  (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 4)
+    (,(lambda () (phrase %I (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "you"))) 2)
     (,(lambda () (phrase %I (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "you"))) 3)
     ))
 
@@ -1464,7 +1464,7 @@
 
 (define-rand-func (%insult-tail)
   `(
-    (,(lambda () %nil) 15)
+    (,(lambda () %nil) 8)
     (,(lambda () (phrase %comma (lit-phrase "you") (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
     (,(lambda () (phrase %comma (lit-phrase "you") (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART)  (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
     (,(lambda () (phrase %comma %and (%I-need) (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE))) 1)
@@ -1493,5 +1493,11 @@
     (delete-file "Insults.txt")
     (doit 1000 rand-sentence (open-output-file "Phrases.txt"))
     (doit 1000 rand-sentence-bother (open-output-file "PhrasesBother.txt"))
+    (doit 1000 insult (open-output-file "Insults.txt"))
+    ))
+
+(define (main-insult)
+  (begin
+    (delete-file "Insults.txt")
     (doit 1000 insult (open-output-file "Insults.txt"))
     ))
