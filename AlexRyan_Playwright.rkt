@@ -1434,7 +1434,48 @@
 (define (%verb-present-perfect-continuous-ego trans) (phrase %have %been (rand-word trans VERB-CONJUGATED CONJ-PRESENT-PART)))
 (define (%verb-past-perfect-continuous trans) (phrase %had %been (rand-word trans VERB-CONJUGATED CONJ-PRESENT-PART)))
 (define (%verb-future-perfect-continuous trans) (phrase (%random-inflect) %have %been (rand-word trans VERB-CONJUGATED CONJ-PRESENT-PART)))
-         
+
+(define-rand-func (%insult-body)
+  `(
+    (,(lambda () (phrase (%you-are) (%being-target #f ''you))) 2)
+    (,(lambda () (phrase (lit-phrase "you")  (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE) %comma %and (%insult)))  1)
+    (,(lambda () (phrase (%you-are) (lit-phrase "such a") (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
+    (,(lambda () (phrase (%you-are) %a  (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART)  (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
+    (,(lambda () (phrase %I (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "you"))) 1)
+    (,(lambda () (phrase %I (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "you"))) 1)
+    ))
+
+(define-rand-elem (%you-are)
+  `((,(lit-phrase "you are") 1)
+    (,(lit-phrase "you're") 1)
+    (,(lit-phrase "I heard you're") 1)
+    (,(lit-phrase "you know, you're") 1)
+   ))    
+
+
+(define-rand-elem (%I-need)
+  `((,(lit-phrase "I need you to") 1)
+    (,(lit-phrase "I want you to") 1)
+    (,(lit-phrase "I wish that you'd") 1)
+    (,(lit-phrase "I hope you") 1)
+    (,(lit-phrase "I think you should") 1)
+    (,(lit-phrase "please") 1)
+    ))  
+
+(define-rand-func (%insult-tail)
+  `(
+    (,(lambda () %nil) 15)
+    (,(lambda () (phrase %comma (lit-phrase "you") (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
+    (,(lambda () (phrase %comma (lit-phrase "you") (rand-word POS-TRANSITIVE-VERB VERB-CONJUGATED CONJ-PRESENT-PART)  (%possible-adj) (rand-word POS-COUNTABLE-NOUN #t))) 1)
+    (,(lambda () (phrase %comma %and (%I-need) (rand-word POS-INTRANSITIVE-VERB VERB-INFINITIVE))) 1)
+    (,(lambda () (phrase %comma %and (%I-need) (rand-word POS-TRANSITIVE-VERB VERB-INFINITIVE) (lit-phrase "yourself")) 1)
+    )))
+
+  
+(define (%insult)
+  (phrase (%insult-body) (%insult-tail)))
+
+
 
 (define (doit n fn out)
   (if (= n 0)
@@ -1448,6 +1489,9 @@
   (begin
     (delete-file "Phrases.txt")
     (delete-file "PhrasesBother.txt")
+    (delete-file "Insults.txt")
     (doit 1000 rand-sentence (open-output-file "Phrases.txt"))
-    (doit 1000 rand-sentence-bother (open-output-file "PhrasesBother.txt"))))
+    (doit 1000 rand-sentence-bother (open-output-file "PhrasesBother.txt"))
+    (doit 1000 %insult (open-output-file "Insults.txt"))))
 
+(main)

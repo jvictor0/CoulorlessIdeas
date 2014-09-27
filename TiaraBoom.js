@@ -1,3 +1,4 @@
+var rl = require('readline');
 
 function AddWordsToCorpus(words,corpus,dict)
 {
@@ -55,21 +56,22 @@ function GenerateCorpus(twitter_id, tweet)
 }
 
 
+var fs = require('fs');
+
 function LoadDictionary()
 {
-  //print'starting load dict');
-  return eval('(' + readFile("ideas_json") + ')')
+    return JSON.parse(fs.readFileSync("ideas_json",'utf-8'));
 }
 
 function LoadCoOccuranceDict()
 {
-  return eval('(' + readFile("CoOcc.txt") +')')
+    return JSON.parse(fs.readFileSync("CoOcc.txt",'utf-8'));
 }
 
 
 function encodeString (e)
 {
-  return e;  
+    return e;  
 }
 
 
@@ -80,7 +82,7 @@ function shuffle(o){ //v1.0
   return o;
 }
 
-function chooseResponse(tweets, maxtrials)
+function chooseResponse(tweets, maxtrials, file)
 {
   var dict = LoadDictionary();
   var coOccuranceDict = LoadCoOccuranceDict();
@@ -98,7 +100,7 @@ function chooseResponse(tweets, maxtrials)
     var tweet_ix = 1;
  
     
-    var sentence = getRandomSentence().split(' ');
+    var sentence = getRandomSentence(file).split(' ');
  
     var response = "";
     var used_words = [];
@@ -211,20 +213,50 @@ function chooseResponse(tweets, maxtrials)
   return false;
 }
 
-function getRandomSentence()
+function LoadNegativeWords()
 {
-    var result = readFile("Phrases.txt").split("\n"); 
+    return fs.readFileSync("negative.txt",'utf-8').replace("\n"," "); 
+}
+
+function getRandomSentence(sentencefile)
+{
+    var result = fs.readFileSync(sentencefile,'utf-8').split("\n"); 
     var theresult = result[Math.floor(Math.random() * result.length)]; 
     //printtheresult);
     return theresult;
 }
 
-function getTheTweets()
-{
-    var res = readFile("TheTweets.txt").split("\n");
-    res.pop();
-    return res.reverse(); 
+var r = rl.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+var history = ["comedy hack day stupid stupidly fart burrito Joseph Niel"];
+    
+function Main() {
+
+    r.question("", function(query)
+    {
+	var response = "";
+	if (query == "_insult")
+	{
+	    response = chooseResponse([LoadNegativeWords()], 30, "Insults.txt");
+	}
+	else
+	{
+	    history.unshift(query);
+	    response = chooseResponse(history, 30, "Phrases.txt");
+	}
+	if (response)
+	{
+	    console.log (response);
+	}
+	else
+	{
+	    console.log ("I don't have a response to that")
+	}
+	Main();
+    });
 }
-var res = chooseResponse(getTheTweets(),10);
-if (res) { print(res); }
-else { print ("no response, cold start probably"); }
+
+Main();
